@@ -56,13 +56,46 @@ module.exports = function(User) {
       });
       console.log(requestID);
       ctx.args.data = { ...ctx.args.data, requestID };
-      ctx.instance.unsetAttribute("confirmPassword");
-
-      console.log(ctx.args.data);
       // TODO **DONE** Send the request id to the user back
     }
   });
+  User.afterRemote("create", async function(ctx, remoteResult) {
+    const {
+      email,
+      password,
+      phoneNumber,
+      username,
+      id,
+      firstName,
+      lastName,
+      requestID
+    } = ctx.args.data;
+    console.log(ctx.result);
+    try {
+      const token = await User.login({ email, password });
+      ctx.result = {
+        id,
+        email,
+        phoneNumber,
+        requestID,
+        username,
+        firstName,
+        lastName,
+        token: token.id
+      };
+    } catch (error) {
+      next(error);
+    }
+    console.log(ctx);
+    console.log(email, password);
+  });
 
+  User.observe("before save", function removeConfirmPassField(ctx, next) {
+    if (ctx.isNewInstance) {
+      ctx.instance.unsetAttribute("confirmPassword");
+    }
+    next();
+  });
   // Add remote method for confirming phone number
   User.confirmPhone = async function({ code, requestID }) {
     // ?The api call to confirm the phone
@@ -74,14 +107,17 @@ module.exports = function(User) {
     if (result.error_text) {
       // ?If the code is not correct
       if (result.status === "6") {
+        throw new CustomError(400, "CODE_EXPIRED", "Code is expired", null);
+      }
+      if (result.status === "17") {
         throw new CustomError(
           400,
-          "PHONE_VERIFIED",
-          "Code has been already verified",
+          "CODE_ERROR",
+          "Wrong code was provided many times",
           null
         );
       }
-      throw new CustomError(400, "INCORRECT_CODE", "Code is in correct", null);
+      throw new CustomError(400, "INCORRECT_CODE", "Code is incorrect", null);
     } else {
       // ? If the code is correct
       const verifiedUser = await User.findOne({
@@ -98,6 +134,7 @@ module.exports = function(User) {
     }
     return "Verfication done";
   };
+
   // TODO : ADD change email option
   User.sendMail = async function(email) {
     const user = await User.findOne({ email });
@@ -150,20 +187,25 @@ module.exports = function(User) {
       emailVerified,
       firstName,
       lastName,
-      phoneNumber
+      phoneNumber,
+      id
     } = user;
     if (!phoneVerified) {
       throw new CustomError(400, "UNVERIFIED_PHONE", "phone is unverified", {
         firstName,
         lastName,
-        phoneNumber
+        phoneNumber,
+        token: mdl.id,
+        id
       });
     }
     if (!emailVerified) {
       throw new CustomError(400, "UNVERIFIED_Email", "email is unverified", {
         firstName,
         lastName,
-        phoneNumber
+        phoneNumber,
+        token: mdl.id,
+        id
       });
     }
   });
