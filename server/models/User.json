@@ -1,0 +1,156 @@
+{
+  "name": "user",
+  "base": "User",
+  "idInjection": true,
+  "options": {
+    "validateUpsert": true
+  },
+  "hidden": [
+    "confirmPassword",
+    "emailToken",
+    "realm"
+  ],
+  "properties": {
+    "firstName": {
+      "type": "string",
+      "required": true
+    },
+    "lastName": {
+      "type": "string",
+      "required": true
+    },
+    "phoneNumber": {
+      "type": "string",
+      "required": true
+    },
+    "requestID": {
+      "type": "string"
+    },
+    "emailToken": {
+      "type": "string"
+    },
+    "phoneVerified": {
+      "type": "boolean",
+      "default": false
+    },
+    "emailVerified": {
+      "type": "boolean",
+      "default": false
+    },
+    "verficationDate": {
+      "type": "date"
+    }
+  },
+  "validations": [],
+  "relations": {},
+  "acls": [
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "permission": "ALLOW",
+      "property": "confirmPhone"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "permission": "ALLOW",
+      "property": "sendMail"
+    },
+    {
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "permission": "ALLOW",
+      "property": "findById"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "permission": "ALLOW",
+      "property": "confirmEmail"
+    }
+  ],
+  "methods": {
+    "confirmEmail": {
+      "accepts": [
+        {
+          "arg": "token",
+          "type": "string",
+          "required": true,
+          "description": "The token in the url",
+          "http": {
+            "source": "query"
+          }
+        }
+      ],
+      "returns": [
+        {
+          "arg": "result",
+          "type": "string"
+        }
+      ],
+      "description": "confirm email ",
+      "http": [
+        {
+          "path": "/confirmEmail",
+          "verb": "get"
+        }
+      ]
+    },
+    "confirmPhone": {
+      "accepts": [
+        {
+          "arg": "Code",
+          "type": "object",
+          "required": true,
+          "description": "req",
+          "http": {
+            "source": "body"
+          }
+        }
+      ],
+      "returns": [
+        {
+          "arg": "result",
+          "type": "string"
+        }
+      ],
+      "description": "confirm email ",
+      "http": [
+        {
+          "path": "/confirmPhone",
+          "verb": "post"
+        }
+      ]
+    },
+    "sendMail": {
+      "accepts": [
+        {
+          "arg": "email",
+          "type": "object",
+          "required": true,
+          "description": "email to be verified",
+          "http": {
+            "source": "body"
+          }
+        }
+      ],
+      "returns": [
+        {
+          "arg": "result",
+          "type": "boolean",
+          "description": "result of sending email"
+        }
+      ],
+      "description": "sending confirmation mail",
+      "http": [
+        {
+          "path": "/sendmail",
+          "verb": "post"
+        }
+      ]
+    }
+  }
+}
