@@ -4,6 +4,7 @@
     "name": "mongoDS",
     "protocol": "mongodb+srv",
     "useNewUrlParser": true,
-    "connector": "mongodb"
+    "connector": "mongodb",
+    "connectionTimeout": 15000
   }
 }

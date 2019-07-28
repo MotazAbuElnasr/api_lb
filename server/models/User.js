@@ -3,6 +3,7 @@ const sgMail = require("@sendgrid/mail");
 const uuidv1 = require("uuid/v1");
 const util = require("util");
 const { checkUserErrors } = require("../helpers/validators");
+const CustomError = require("../helpers/CustomError");
 const domain = "localhost:3000";
 const nexmo = new Nexmo({
   apiKey: process.env.NEXMO_API,
@@ -35,7 +36,9 @@ module.exports = function(User) {
     const user = ctx.req.body;
     const { phoneNumber, email, username } = user;
     const userErrors = checkUserErrors(user);
-    console.log("connect");
+    if (!(phoneNumber && email && username)) {
+      throw new CustomError(400, "VERFICATION", "invalid inputs", userErrors);
+    }
     const phoneExist = await User.findOne({ where: { phoneNumber } });
     const emailExist = await User.findOne({ where: { email } });
     const usernameExist = await User.findOne({ where: { username } });
@@ -43,11 +46,7 @@ module.exports = function(User) {
     emailExist ? userErrors.push("email") : "";
     usernameExist ? userErrors.push("username") : "";
     if (userErrors.length !== 0) {
-      return Promise.reject({
-        statusCode: 200,
-        message: "errors",
-        errors: userErrors
-      });
+      throw new CustomError(400, "VERFICATION", "invalid inputs", userErrors);
     } else {
       const number = phoneNumber.slice(1);
       const { request_id: requestID } = await nexmo.verify.request({
@@ -57,6 +56,8 @@ module.exports = function(User) {
       });
       console.log(requestID);
       ctx.args.data = { ...ctx.args.data, requestID };
+      ctx.instance.unsetAttribute("confirmPassword");
+
       console.log(ctx.args.data);
       // TODO **DONE** Send the request id to the user back
     }
@@ -73,17 +74,14 @@ module.exports = function(User) {
     if (result.error_text) {
       // ?If the code is not correct
       if (result.status === "6") {
-        return Promise.reject({
-          statusCode: 200,
-          message: "errors",
-          errors: ["Phone is already verified"]
-        });
+        throw new CustomError(
+          400,
+          "PHONE_VERIFIED",
+          "Code has been already verified",
+          null
+        );
       }
-      return Promise.reject({
-        statusCode: 200,
-        message: "errors",
-        errors: ["Code is not correct"]
-      });
+      throw new CustomError(400, "INCORRECT_CODE", "Code is in correct", null);
     } else {
       // ? If the code is correct
       const verifiedUser = await User.findOne({
@@ -100,7 +98,7 @@ module.exports = function(User) {
     }
     return "Verfication done";
   };
-
+  // TODO : ADD change email option
   User.sendMail = async function(email) {
     const user = await User.findOne({ email });
     if (user) {
@@ -113,7 +111,6 @@ module.exports = function(User) {
       return "Verfication done";
     }
     return "error";
-    // TODO
   };
 
   User.confirmEmail = async function(token) {
@@ -124,46 +121,50 @@ module.exports = function(User) {
       const diffTime = Math.abs(Date.now() - verficationDate.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       if (user.emailVerified || diffDays > 2) {
-        return "Expired";
+        throw new CustomError(
+          400,
+          "EXPIRED_TOKEN",
+          "The provided token is expired",
+          null
+        );
       }
       await user.updateAttribute("emailVerified", true);
       return "Completed";
     }
-    return "Incorrect";
+    throw new CustomError(
+      400,
+      "INCORRECT_TOKEN",
+      "The provided token is incorrect",
+      null
+    );
   };
-  User.afterRemote("confirmEmail", (context, result, next) => {
-    const { result: verficationResult } = result;
-    const actions = {
-      Expired: {
-        statusCode: 200,
-        message: "errors",
-        errors: ["This token is expired"]
-      },
-      Incorrect: {
-        statusCode: 200,
-        message: "errors",
-        errors: ["This token is incorrect"]
-      },
-      Completed: {}
-    };
-    if (actions[verficationResult].errors) {
-      next(actions[verficationResult]);
-    } else {
-      next();
-    }
-  });
   // ? Login
-  User.beforeRemote("login", async (ctx, mdl) => {
-    const email = ctx.req.body.email;
+  User.afterRemote("login", async (ctx, mdl) => {
+    const { email, password, username } = ctx.req.body;
+    if (!(password && (email || username))) {
+      throw new CustomError(400, "LOGIN", "Invalid inputs", null);
+    }
     const user = await User.findOne({ where: { email } });
-    const { phoneVerified, emailVerified } = user;
+    const {
+      phoneVerified,
+      emailVerified,
+      firstName,
+      lastName,
+      phoneNumber
+    } = user;
     if (!phoneVerified) {
-      return Promise.reject({
-        statusCode: 200,
-        message: "errors",
-        errors: userErrors
+      throw new CustomError(400, "UNVERIFIED_PHONE", "phone is unverified", {
+        firstName,
+        lastName,
+        phoneNumber
       });
     }
-    return;
+    if (!emailVerified) {
+      throw new CustomError(400, "UNVERIFIED_Email", "email is unverified", {
+        firstName,
+        lastName,
+        phoneNumber
+      });
+    }
   });
 };

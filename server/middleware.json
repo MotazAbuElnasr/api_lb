@@ -47,7 +47,7 @@
       "params": {
         "debug": false,
         "log": true,
-        "safeFields": ["errors", "statusCode", "message"]
+        "safeFields": ["errors", "statusCode", "message", "data"]
       }
     }
   }
