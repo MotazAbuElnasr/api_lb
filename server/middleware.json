@@ -6,7 +6,7 @@
     "compression": {},
     "cors": {
       "params": {
-        "origin": true,
+        "origin": "*",
         "credentials": true,
         "maxAge": 86400
       }
@@ -35,9 +35,7 @@
   "parse": {},
   "routes": {
     "loopback#rest": {
-      "paths": [
-        "${restApiRoot}"
-      ]
+      "paths": ["${restApiRoot}"]
     }
   },
   "files": {},
@@ -49,11 +47,7 @@
       "params": {
         "debug": false,
         "log": true,
-        "safeFields": [
-          "errors",
-          "statusCode",
-          "message"
-        ]
+        "safeFields": ["errors", "statusCode", "message"]
       }
     }
   }

@@ -5,11 +5,7 @@
   "options": {
     "validateUpsert": true
   },
-  "hidden": [
-    "confirmPassword",
-    "emailToken",
-    "realm"
-  ],
+  "hidden": ["confirmPassword", "emailToken", "realm"],
   "properties": {
     "firstName": {
       "type": "string",
@@ -60,7 +56,7 @@
     },
     {
       "principalType": "ROLE",
-      "principalId": "$everyone",
+      "principalId": "$owner",
       "permission": "ALLOW",
       "property": "findById"
     },

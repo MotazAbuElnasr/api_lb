@@ -142,4 +142,12 @@ module.exports = function(User) {
       next();
     }
   });
+  // ? Login
+  User.beforeRemote("login", async (ctx, mdl) => {
+    const email = ctx.req.body.email;
+    console.log(email);
+
+    console.log(ctx);
+    console.log(mdl);
+  });
 };
