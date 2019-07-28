@@ -52,7 +52,6 @@ const checkUserErrors = user => {
           phoneNumber: "Phone number",
           username: "username"
         };
-        console.log(error.type);
         const errorMsgs = {
           "string.regex.base": `${
             fields[error.path[0]]
@@ -64,8 +63,10 @@ const checkUserErrors = user => {
             fields[error.path[0]]
           } shouldn't exceed 20 characters `,
           "any.required": `${fields[error.path[0]]} shouldn't be blank `,
+          "any.empty": `${fields[error.path[0]]} shouldn't be blank `,
           "string.email": "Email is invalid"
         };
+        console.log(error.type);
         return errorMsgs[error.type];
       })
     : [];

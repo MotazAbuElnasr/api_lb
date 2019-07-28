@@ -101,10 +101,19 @@ module.exports = function(User) {
     return "Verfication done";
   };
 
-  User.sendMail = function(email, callback) {
-    var result = true;
+  User.sendMail = async function(email) {
+    const user = await User.findOne({ email });
+    if (user) {
+      const emailToken = await sendMail(email);
+      await user.updateAttributes({
+        phoneVerified: true,
+        verficationDate: Date.now(),
+        emailToken
+      });
+      return "Verfication done";
+    }
+    return "error";
     // TODO
-    callback(null, result);
   };
 
   User.confirmEmail = async function(token) {
@@ -147,5 +156,14 @@ module.exports = function(User) {
   User.beforeRemote("login", async (ctx, mdl) => {
     const email = ctx.req.body.email;
     const user = await User.findOne({ where: { email } });
+    const { phoneVerified, emailVerified } = user;
+    if (!phoneVerified) {
+      return Promise.reject({
+        statusCode: 200,
+        message: "errors",
+        errors: userErrors
+      });
+    }
+    return;
   });
 };
