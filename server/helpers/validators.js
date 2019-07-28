@@ -82,11 +82,14 @@ const checkUserErrors = user => {
   //   *phone validation
   if (phoneNumber) {
     const parsedPhone = parsePhoneNumberFromString(phoneNumber);
-    if (parsedPhone === undefined || !parsedPhone.isValid()) {
+    if (
+      !parsedPhone ||
+      !parsedPhone.isValid() ||
+      (phoneNumber.slice(0, 3) == "+20" && phoneNumber.length !== 13)
+    ) {
       userErrors.push("Phone number is not valid");
     }
   }
-  console.log(userErrors);
   return userErrors;
 };
 module.exports = { checkUserErrors };

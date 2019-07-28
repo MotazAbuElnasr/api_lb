@@ -35,12 +35,13 @@ module.exports = function(User) {
     const user = ctx.req.body;
     const { phoneNumber, email, username } = user;
     const userErrors = checkUserErrors(user);
+    console.log("connect");
     const phoneExist = await User.findOne({ where: { phoneNumber } });
     const emailExist = await User.findOne({ where: { email } });
     const usernameExist = await User.findOne({ where: { username } });
-    phoneExist ? userErrors.push("This phone number is used") : "";
-    emailExist ? userErrors.push("This email is used") : "";
-    usernameExist ? userErrors.push("This username is used") : "";
+    phoneExist ? userErrors.push("phone") : "";
+    emailExist ? userErrors.push("email") : "";
+    usernameExist ? userErrors.push("username") : "";
     if (userErrors.length !== 0) {
       return Promise.reject({
         statusCode: 200,
@@ -107,7 +108,7 @@ module.exports = function(User) {
   };
 
   User.confirmEmail = async function(token) {
-    const user = await User.findOne({ token });
+    const user = await User.findOne({ where: { token } });
     if (user) {
       // ? Token is expired in 2 days
       const verficationDate = user.verficationDate;
@@ -145,9 +146,6 @@ module.exports = function(User) {
   // ? Login
   User.beforeRemote("login", async (ctx, mdl) => {
     const email = ctx.req.body.email;
-    console.log(email);
-
-    console.log(ctx);
-    console.log(mdl);
+    const user = await User.findOne({ where: { email } });
   });
 };
