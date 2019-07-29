@@ -57,7 +57,7 @@ module.exports = function(User) {
         brand: "Nexmo",
         code_length: "4"
       });
-      ctx.args.data = { ...ctx.args.data, requestID };
+      ctx.args.data = { ...ctx.args.data, requestID, codeDate: Date.now() };
       // TODO **DONE** Send the request id to the user back
     }
   });
@@ -233,14 +233,19 @@ module.exports = function(User) {
         phoneNumber,
         email,
         firstName,
-        lastName
+        lastName,
+        codeDate
       } = user;
       if (!phoneVerified) {
+        const diffTime = Math.abs(Date.now() - codeDate.getTime());
+        const diffSec = Math.ceil(diffTime / 1000);
+        console.log(diffMin);
         throw new CustomError(400, "UNVERIFIED_PHONE", "phone is unverified", {
           phoneNumber,
           email,
           firstName,
-          lastName
+          lastName,
+          codeState: diffSec > 300 ? 0 : diffSec
         });
       }
       if (!emailVerified) {
