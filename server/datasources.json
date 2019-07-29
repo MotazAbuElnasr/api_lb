@@ -1,7 +1,7 @@
 {
   "db": {
     "host": "${MONGO_URL}",
-    "name": "mongoDS",
+    "name": "db",
     "protocol": "mongodb+srv",
     "useNewUrlParser": true,
     "connector": "mongodb",

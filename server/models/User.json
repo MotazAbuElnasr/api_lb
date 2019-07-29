@@ -50,9 +50,9 @@
     {
       "accessType": "EXECUTE",
       "principalType": "ROLE",
-      "principalId": "$everyone",
+      "principalId": "$owner",
       "permission": "ALLOW",
-      "property": "sendMail"
+      "property": "resendMail"
     },
     {
       "principalType": "ROLE",
@@ -66,13 +66,20 @@
       "principalId": "$everyone",
       "permission": "ALLOW",
       "property": "confirmEmail"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
+      "property": "resendCode"
     }
   ],
   "methods": {
     "confirmEmail": {
       "accepts": [
         {
-          "arg": "token",
+          "arg": "emailToken",
           "type": "string",
           "required": true,
           "description": "The token in the url",
@@ -98,8 +105,17 @@
     "confirmPhone": {
       "accepts": [
         {
-          "arg": "Code",
-          "type": "object",
+          "arg": "code",
+          "type": "string",
+          "required": true,
+          "description": "req",
+          "http": {
+            "source": "body"
+          }
+        },
+        {
+          "arg": "requestID",
+          "type": "string",
           "required": true,
           "description": "req",
           "http": {
@@ -121,11 +137,20 @@
         }
       ]
     },
-    "sendMail": {
+    "resendMail": {
       "accepts": [
         {
+          "arg": "id",
+          "type": "string",
+          "required": true,
+          "description": "owner id",
+          "http": {
+            "source": "path"
+          }
+        },
+        {
           "arg": "email",
-          "type": "object",
+          "type": "string",
           "required": true,
           "description": "email to be verified",
           "http": {
@@ -143,7 +168,35 @@
       "description": "sending confirmation mail",
       "http": [
         {
-          "path": "/sendmail",
+          "path": "/resendMail/:id",
+          "verb": "post"
+        }
+      ]
+    },
+    "resendCode": {
+      "accepts": [
+        {
+          "arg": "id",
+          "type": "string",
+          "required": true,
+          "description": "owner id",
+          "http": {
+            "source": "path"
+          }
+        }
+      ],
+      "returns": [
+        {
+          "arg": "requestID",
+          "type": "string",
+          "root": false,
+          "description": "Confirmation result"
+        }
+      ],
+      "description": "resending confirmation code",
+      "http": [
+        {
+          "path": "/resendCode/:id",
           "verb": "post"
         }
       ]

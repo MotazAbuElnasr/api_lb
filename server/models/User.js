@@ -14,7 +14,7 @@ nexmo.verify.request = util.promisify(nexmo.verify.request);
 const SENDGRED_KEY = process.env.SENDGRID_KEY;
 module.exports = function(User) {
   const sendMail = async email => {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
     if (user) {
       const emailToken = uuidv1();
       await user.updateAttribute("emailToken", emailToken);
@@ -24,7 +24,7 @@ module.exports = function(User) {
         from: "lb.media@lb.com",
         subject: "Please verify your email",
         html: `
-        <a href="http://${domain}/api/users/confirmEmail?token=${emailToken}">Please click here link to verify</a>`
+        <a href="http://${domain}/api/users/confirmEmail?emailToken=${emailToken}">Please click here link to verify</a>`
       };
       await sgMail.send(msg); //! uncomment that
       return emailToken;
@@ -54,7 +54,6 @@ module.exports = function(User) {
         brand: "Nexmo",
         code_length: "4"
       });
-      console.log(requestID);
       ctx.args.data = { ...ctx.args.data, requestID };
       // TODO **DONE** Send the request id to the user back
     }
@@ -65,12 +64,11 @@ module.exports = function(User) {
       password,
       phoneNumber,
       username,
-      id,
       firstName,
       lastName,
       requestID
     } = ctx.args.data;
-    console.log(ctx.result);
+    const id = remoteResult.id;
     try {
       const token = await User.login({ email, password });
       ctx.result = {
@@ -86,8 +84,6 @@ module.exports = function(User) {
     } catch (error) {
       next(error);
     }
-    console.log(ctx);
-    console.log(email, password);
   });
 
   User.observe("before save", function removeConfirmPassField(ctx, next) {
@@ -96,14 +92,26 @@ module.exports = function(User) {
     }
     next();
   });
+  //? Resend confirmation number
+  User.resendCode = async function(id) {
+    const user = await User.findOne({ where: { id } });
+    const number = user.phoneNumber.slice(1);
+    const { request_id: requestID } = await nexmo.verify.request({
+      number: "201095747099", //! api send free sms to the registered number
+      brand: "Nexmo",
+      code_length: "4"
+    });
+    await user.updateAttributes({ requestID });
+    return requestID;
+  };
+
   // Add remote method for confirming phone number
-  User.confirmPhone = async function({ code, requestID }) {
+  User.confirmPhone = async function(code, requestID) {
     // ?The api call to confirm the phone
     const result = await nexmo.verify.check({
       request_id: requestID,
       code: code
     });
-    console.log(result);
     if (result.error_text) {
       // ?If the code is not correct
       if (result.status === "6") {
@@ -136,8 +144,8 @@ module.exports = function(User) {
   };
 
   // TODO : ADD change email option
-  User.sendMail = async function(email) {
-    const user = await User.findOne({ email });
+  User.resendMail = async function(id, email) {
+    const user = await User.findOne({ where: { email } });
     if (user) {
       const emailToken = await sendMail(email);
       await user.updateAttributes({
@@ -150,8 +158,8 @@ module.exports = function(User) {
     return "error";
   };
 
-  User.confirmEmail = async function(token) {
-    const user = await User.findOne({ where: { token } });
+  User.confirmEmail = async function(emailToken) {
+    const user = await User.findOne({ where: { emailToken } });
     if (user) {
       // ? Token is expired in 2 days
       const verficationDate = user.verficationDate;
@@ -175,6 +183,7 @@ module.exports = function(User) {
       null
     );
   };
+
   // ? Login
   User.afterRemote("login", async (ctx, mdl) => {
     const { email, password, username } = ctx.req.body;
