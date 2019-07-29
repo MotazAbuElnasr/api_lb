@@ -234,18 +234,20 @@ module.exports = function(User) {
         email,
         firstName,
         lastName,
-        codeDate
+        codeDate,
+        requestID
       } = user;
       if (!phoneVerified) {
         const diffTime = Math.abs(Date.now() - codeDate.getTime());
         const diffSec = Math.ceil(diffTime / 1000);
-        console.log(diffMin);
+        console.log(diffSec);
         throw new CustomError(400, "UNVERIFIED_PHONE", "phone is unverified", {
           phoneNumber,
           email,
           firstName,
           lastName,
-          codeState: diffSec > 300 ? 0 : diffSec
+          codeState: diffSec > 300 ? 0 : 300 - diffSec,
+          requestID: diffSec > 300 ? null : requestID
         });
       }
       if (!emailVerified) {
