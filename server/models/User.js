@@ -61,33 +61,6 @@ module.exports = function(User) {
       // TODO **DONE** Send the request id to the user back
     }
   });
-  User.afterRemote("create", async function(ctx, remoteResult) {
-    const {
-      email,
-      password,
-      phoneNumber,
-      username,
-      firstName,
-      lastName,
-      requestID
-    } = ctx.args.data;
-    const id = remoteResult.id;
-    try {
-      const token = await User.login({ email, password });
-      ctx.result = {
-        id,
-        email,
-        phoneNumber,
-        requestID,
-        username,
-        firstName,
-        lastName,
-        token: token.id
-      };
-    } catch (error) {
-      next(error);
-    }
-  });
 
   User.observe("before save", function removeConfirmPassField(ctx, next) {
     if (ctx.isNewInstance) {
@@ -147,7 +120,7 @@ module.exports = function(User) {
   };
 
   // TODO : ADD change email option
-  User.resendMail = async function(id, email) {
+  User.resendMail = async function(email) {
     const user = await User.findOne({ where: { email } });
     if (user) {
       const emailToken = await sendMail(email);
@@ -188,77 +161,48 @@ module.exports = function(User) {
   };
 
   // ? Login
-  User.afterRemote("login", async (ctx, mdl) => {
+  User.beforeRemote("login", async ctx => {
     const { email, password, username } = ctx.req.body;
     if (!(password && (email || username))) {
       throw new CustomError(400, "LOGIN", "Invalid inputs", null);
     }
-    const user = await User.findOne({ where: { email } });
+    let user;
+    if (email) {
+      user = await User.findOne({ where: { email } });
+    }
+    if (username && !email) {
+      user = await User.findOne({ where: { username } });
+    }
+    const isMatched = await user.hasPassword(password);
+    if (!isMatched) {
+      throw new CustomError(400, "INVALID_LOGIN", "Credentials are incorrect");
+    }
     const {
       phoneVerified,
       emailVerified,
       firstName,
       lastName,
-      phoneNumber,
-      id
+      phoneNumber
     } = user;
     if (!phoneVerified) {
       throw new CustomError(400, "UNVERIFIED_PHONE", "phone is unverified", {
         firstName,
         lastName,
-        phoneNumber,
-        token: mdl.id,
-        id
+        phoneNumber
       });
     }
     if (!emailVerified) {
       throw new CustomError(400, "UNVERIFIED_Email", "email is unverified", {
         firstName,
         lastName,
-        email,
-        token: mdl.id,
-        id
+        email
       });
     }
   });
-
-  // ? Check the access token :
-  User.verifyToken = async function(id) {
-    console.log(id);
-    const user = await User.findOne({ where: { id } });
-    if (user) {
-      const {
-        emailVerified,
-        phoneVerified,
-        phoneNumber,
-        email,
-        firstName,
-        lastName,
-        codeDate,
-        requestID
-      } = user;
-      if (!phoneVerified) {
-        const diffTime = Math.abs(Date.now() - codeDate.getTime());
-        const diffSec = Math.ceil(diffTime / 1000);
-        console.log(diffSec);
-        throw new CustomError(400, "UNVERIFIED_PHONE", "phone is unverified", {
-          phoneNumber,
-          email,
-          firstName,
-          lastName,
-          codeState: diffSec > 300 ? 0 : 300 - diffSec,
-          requestID: diffSec > 300 ? null : requestID
-        });
-      }
-      if (!emailVerified) {
-        throw new CustomError(400, "UNVERIFIED_Email", "email is unverified", {
-          phoneNumber,
-          email,
-          firstName,
-          lastName
-        });
-      }
-      return "verified";
-    }
-  };
+  // ?restrict find all
+  User.afterRemote("find", function(ctx, remoteResult, next) {
+    const { firstName, lastName } = remoteResult[0];
+    ctx.result = { firstName, lastName };
+    next();
+  });
 };

@@ -1,0 +1,5 @@
+{
+   "json.schemas":[
+      {"fileMatch": ["*/models/*.json"], "url": "./schemas/apiconnectmodels.json"}
+   ]
+}
