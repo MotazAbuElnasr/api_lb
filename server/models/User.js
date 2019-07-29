@@ -33,15 +33,18 @@ module.exports = function(User) {
   };
 
   User.beforeRemote("create", async function(ctx, obj) {
+    console.log(ctx.req.body);
     const user = ctx.req.body;
     const { phoneNumber, email, username } = user;
     const userErrors = checkUserErrors(user);
     if (!(phoneNumber && email && username)) {
       throw new CustomError(400, "VERFICATION", "invalid inputs", userErrors);
     }
+    console.log("connecting");
     const phoneExist = await User.findOne({ where: { phoneNumber } });
     const emailExist = await User.findOne({ where: { email } });
     const usernameExist = await User.findOne({ where: { username } });
+    console.log("done");
     phoneExist ? userErrors.push("phone") : "";
     emailExist ? userErrors.push("email") : "";
     usernameExist ? userErrors.push("username") : "";
@@ -106,7 +109,7 @@ module.exports = function(User) {
   };
 
   // Add remote method for confirming phone number
-  User.confirmPhone = async function(code, requestID) {
+  User.confirmPhone = async function(id, code, requestID) {
     // ?The api call to confirm the phone
     const result = await nexmo.verify.check({
       request_id: requestID,
@@ -158,7 +161,7 @@ module.exports = function(User) {
     return "error";
   };
 
-  User.confirmEmail = async function(emailToken) {
+  User.confirmEmail = async function(id, emailToken) {
     const user = await User.findOne({ where: { emailToken } });
     if (user) {
       // ? Token is expired in 2 days
@@ -212,10 +215,43 @@ module.exports = function(User) {
       throw new CustomError(400, "UNVERIFIED_Email", "email is unverified", {
         firstName,
         lastName,
-        phoneNumber,
+        email,
         token: mdl.id,
         id
       });
     }
   });
+
+  // ? Check the access token :
+  User.verifyToken = async function(id) {
+    console.log(id);
+    const user = await User.findOne({ where: { id } });
+    if (user) {
+      const {
+        emailVerified,
+        phoneVerified,
+        phoneNumber,
+        email,
+        firstName,
+        lastName
+      } = user;
+      if (!phoneVerified) {
+        throw new CustomError(400, "UNVERIFIED_PHONE", "phone is unverified", {
+          phoneNumber,
+          email,
+          firstName,
+          lastName
+        });
+      }
+      if (!emailVerified) {
+        throw new CustomError(400, "UNVERIFIED_Email", "email is unverified", {
+          phoneNumber,
+          email,
+          firstName,
+          lastName
+        });
+      }
+      return "verified";
+    }
+  };
 };

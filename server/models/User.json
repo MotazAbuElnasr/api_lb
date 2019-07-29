@@ -35,6 +35,9 @@
     },
     "verficationDate": {
       "type": "date"
+    },
+    "codeDate": {
+      "type": "date"
     }
   },
   "validations": [],
@@ -43,7 +46,7 @@
     {
       "accessType": "EXECUTE",
       "principalType": "ROLE",
-      "principalId": "$everyone",
+      "principalId": "$owner",
       "permission": "ALLOW",
       "property": "confirmPhone"
     },
@@ -73,11 +76,27 @@
       "principalId": "$owner",
       "permission": "ALLOW",
       "property": "resendCode"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
+      "property": "verifyToken"
     }
   ],
   "methods": {
     "confirmEmail": {
       "accepts": [
+        {
+          "arg": "id",
+          "type": "string",
+          "required": true,
+          "description": "owner id",
+          "http": {
+            "source": "path"
+          }
+        },
         {
           "arg": "emailToken",
           "type": "string",
@@ -104,6 +123,15 @@
     },
     "confirmPhone": {
       "accepts": [
+        {
+          "arg": "id",
+          "type": "string",
+          "required": true,
+          "description": "owner id",
+          "http": {
+            "source": "path"
+          }
+        },
         {
           "arg": "code",
           "type": "string",
@@ -197,6 +225,34 @@
       "http": [
         {
           "path": "/resendCode/:id",
+          "verb": "post"
+        }
+      ]
+    },
+    "verifyToken": {
+      "accepts": [
+        {
+          "arg": "id",
+          "type": "string",
+          "required": true,
+          "description": "owner id",
+          "http": {
+            "source": "path"
+          }
+        }
+      ],
+      "returns": [
+        {
+          "arg": "result",
+          "type": "string",
+          "root": false,
+          "description": "Confirmation result"
+        }
+      ],
+      "description": "check user state",
+      "http": [
+        {
+          "path": "/verifyToken/:id",
           "verb": "post"
         }
       ]
