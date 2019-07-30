@@ -1,9 +1,13 @@
 "use strict";
 
 module.exports = function(Post) {
-  Post.afterRemote("find", function(ctx, remoteResult, next) {
-    console.log(ctx);
-    const { text } = remoteResult;
-    ctx.result = { text };
+  Post.beforeRemote("find", async function(ctx, remoteResult) {
+    ctx.args.filter = {
+      ...ctx.args.filter,
+      include: {
+        relation: "user",
+        scope: { fields: ["firstName", "last Name"] }
+      }
+    };
   });
 };

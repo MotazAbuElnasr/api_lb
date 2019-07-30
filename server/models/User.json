@@ -47,8 +47,12 @@
       "model": "Post",
       "foreignKey": "",
       "options": {
-        "nestRemoting": true
+        "nestRemoting": false
       }
+    },
+    "friends": {
+      "type": "referencesMany",
+      "model": "user"
     }
   },
   "acls": [
@@ -73,6 +77,12 @@
       "property": "findById"
     },
     {
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "permission": "DENY",
+      "property": "deleteById"
+    },
+    {
       "accessType": "EXECUTE",
       "principalType": "ROLE",
       "principalId": "$everyone",
@@ -89,30 +99,35 @@
     {
       "accessType": "EXECUTE",
       "principalType": "ROLE",
-      "principalId": "$everyone",
+      "principalId": "$authenticated",
       "permission": "ALLOW",
-      "property": "verifyToken"
+      "property": "find"
     },
     {
       "accessType": "EXECUTE",
       "principalType": "ROLE",
       "principalId": "$authenticated",
       "permission": "ALLOW",
-      "property": "find"
+      "property": "addFriend"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$authenticated",
+      "permission": "ALLOW",
+      "property": "__get__posts"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
+      "property": "__unlink__friends"
     }
   ],
   "methods": {
     "confirmEmail": {
       "accepts": [
-        {
-          "arg": "id",
-          "type": "string",
-          "required": true,
-          "description": "owner id",
-          "http": {
-            "source": "path"
-          }
-        },
         {
           "arg": "emailToken",
           "type": "string",
@@ -139,15 +154,6 @@
     },
     "confirmPhone": {
       "accepts": [
-        {
-          "arg": "id",
-          "type": "string",
-          "required": true,
-          "description": "owner id",
-          "http": {
-            "source": "path"
-          }
-        },
         {
           "arg": "code",
           "type": "string",
@@ -183,15 +189,6 @@
     },
     "resendMail": {
       "accepts": [
-        {
-          "arg": "id",
-          "type": "string",
-          "required": true,
-          "description": "owner id",
-          "http": {
-            "source": "path"
-          }
-        },
         {
           "arg": "email",
           "type": "string",
@@ -245,30 +242,40 @@
         }
       ]
     },
-    "verifyToken": {
+
+    "addFriend": {
       "accepts": [
         {
           "arg": "id",
           "type": "string",
           "required": true,
-          "description": "owner id",
+          "description": "user id",
           "http": {
             "source": "path"
+          }
+        },
+        {
+          "arg": "friendId",
+          "type": "string",
+          "required": true,
+          "description": "friend id",
+          "http": {
+            "source": "body"
           }
         }
       ],
       "returns": [
         {
           "arg": "result",
-          "type": "string",
+          "type": "boolean",
           "root": false,
-          "description": "Confirmation result"
+          "description": ""
         }
       ],
-      "description": "check user state",
+      "description": "add friend",
       "http": [
         {
-          "path": "/verifyToken/:id",
+          "path": "/addFriend/:id",
           "verb": "post"
         }
       ]

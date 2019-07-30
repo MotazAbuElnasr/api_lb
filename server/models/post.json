@@ -9,6 +9,10 @@
     "text": {
       "type": "string",
       "required": true
+    },
+    "privacy": {
+      "type": "string",
+      "required": true
     }
   },
   "validations": [],
@@ -18,7 +22,7 @@
       "model": "user",
       "foreignKey": "",
       "options": {
-        "nestRemoting": true
+        "nestRemoting": false
       }
     }
   },

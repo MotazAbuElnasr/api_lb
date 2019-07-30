@@ -13,6 +13,13 @@ nexmo.verify.check = util.promisify(nexmo.verify.check);
 nexmo.verify.request = util.promisify(nexmo.verify.request);
 const SENDGRED_KEY = process.env.SENDGRID_KEY;
 module.exports = function(User) {
+  // !Remove unused methods
+  User.disableRemoteMethodByName("prototype.__create__friends");
+  User.disableRemoteMethodByName("prototype.__delete__friends");
+  User.disableRemoteMethodByName("prototype.__findById__friends");
+  User.disableRemoteMethodByName("prototype.__updateById__friends");
+  User.disableRemoteMethodByName("prototype.__destroyById__friends");
+
   const sendMail = async email => {
     const user = await User.findOne({ where: { email } });
     if (user) {
@@ -82,7 +89,7 @@ module.exports = function(User) {
   };
 
   // Add remote method for confirming phone number
-  User.confirmPhone = async function(id, code, requestID) {
+  User.confirmPhone = async function(code, requestID) {
     // ?The api call to confirm the phone
     const result = await nexmo.verify.check({
       request_id: requestID,
@@ -134,7 +141,7 @@ module.exports = function(User) {
     return "error";
   };
 
-  User.confirmEmail = async function(id, emailToken) {
+  User.confirmEmail = async function(emailToken) {
     const user = await User.findOne({ where: { emailToken } });
     if (user) {
       // ? Token is expired in 2 days
@@ -159,7 +166,6 @@ module.exports = function(User) {
       null
     );
   };
-
   // ? Login
   User.beforeRemote("login", async ctx => {
     const { email, password, username } = ctx.req.body;
@@ -182,13 +188,18 @@ module.exports = function(User) {
       emailVerified,
       firstName,
       lastName,
-      phoneNumber
+      phoneNumber,
+      codeDate
     } = user;
+    const diffTime = Math.abs(Date.now() - verficationDate.getTime());
+    const remainingTime = 300 - Math.ceil(diffTime / 1000);
+
     if (!phoneVerified) {
       throw new CustomError(400, "UNVERIFIED_PHONE", "phone is unverified", {
         firstName,
         lastName,
-        phoneNumber
+        phoneNumber,
+        remainingTime
       });
     }
     if (!emailVerified) {
@@ -200,9 +211,15 @@ module.exports = function(User) {
     }
   });
   // ?restrict find all
+
   User.afterRemote("find", function(ctx, remoteResult, next) {
-    const { firstName, lastName } = remoteResult[0];
-    ctx.result = { firstName, lastName };
+    ctx.args.filter = {
+      ...ctx.args.filter,
+      scope: { fields: ["firstName", "last Name"] }
+    };
+
+    const { firstName, lastName, id } = remoteResult[0];
+    ctx.result = { firstName, lastName, id };
     next();
   });
 };
