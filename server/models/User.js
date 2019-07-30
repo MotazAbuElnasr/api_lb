@@ -91,6 +91,7 @@ module.exports = function(User) {
   // Add remote method for confirming phone number
   User.confirmPhone = async function({ code, requestID }) {
     // ?The api call to confirm the phone
+    console.log(code, requestID);
     const result = await nexmo.verify.check({
       request_id: requestID,
       code: code
