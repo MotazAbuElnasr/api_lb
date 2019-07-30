@@ -89,7 +89,7 @@ module.exports = function(User) {
   };
 
   // Add remote method for confirming phone number
-  User.confirmPhone = async function(code, requestID) {
+  User.confirmPhone = async function({ code, requestID }) {
     // ?The api call to confirm the phone
     const result = await nexmo.verify.check({
       request_id: requestID,
@@ -212,14 +212,11 @@ module.exports = function(User) {
   });
   // ?restrict find all
 
-  User.afterRemote("find", function(ctx, remoteResult, next) {
+  User.beforeRemote("find", function(ctx, remoteResult, next) {
     ctx.args.filter = {
       ...ctx.args.filter,
-      scope: { fields: ["firstName", "last Name"] }
+      fields: ["id", "firstName", "lastName"]
     };
-
-    const { firstName, lastName, id } = remoteResult[0];
-    ctx.result = { firstName, lastName, id };
     next();
   });
 };

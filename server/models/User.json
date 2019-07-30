@@ -45,7 +45,7 @@
     "posts": {
       "type": "hasMany",
       "model": "Post",
-      "foreignKey": "",
+      "foreignKey": "userId",
       "options": {
         "nestRemoting": false
       }
@@ -156,16 +156,7 @@
       "accepts": [
         {
           "arg": "code",
-          "type": "string",
-          "required": true,
-          "description": "req",
-          "http": {
-            "source": "body"
-          }
-        },
-        {
-          "arg": "requestID",
-          "type": "string",
+          "type": "object",
           "required": true,
           "description": "req",
           "http": {
@@ -242,7 +233,6 @@
         }
       ]
     },
-
     "addFriend": {
       "accepts": [
         {

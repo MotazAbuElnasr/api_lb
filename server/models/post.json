@@ -28,11 +28,10 @@
   },
   "acls": [
     {
-      "accessType": "EXECUTE",
+      "accessType": "*",
       "principalType": "ROLE",
-      "principalId": "$authenticated",
-      "permission": "ALLOW",
-      "property": "find"
+      "principalId": "$everyone",
+      "permission": "DENY"
     }
   ],
   "methods": {}
