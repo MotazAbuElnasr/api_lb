@@ -1,6 +1,8 @@
 {
   "db": {
-    "url": "mongodb://localhost:27017/lbapi",
+    "host": "${MONGO_URL}",
+    "name": "db",
+    "protocol": "mongodb+srv",
     "useNewUrlParser": true,
     "connector": "mongodb",
     "connectionTimeout": 15000

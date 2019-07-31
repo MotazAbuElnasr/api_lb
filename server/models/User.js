@@ -90,8 +90,10 @@ module.exports = function(User) {
 
   // Add remote method for confirming phone number
   User.confirmPhone = async function({ code, requestID }) {
+    if (!code || !requestID) {
+      throw new CustomError(400, "INCORRECT_CODE", "No code is sent", null);
+    }
     // ?The api call to confirm the phone
-    console.log(code, requestID);
     const result = await nexmo.verify.check({
       request_id: requestID,
       code: code
@@ -171,7 +173,12 @@ module.exports = function(User) {
   User.beforeRemote("login", async ctx => {
     const { email, password, username } = ctx.req.body;
     if (!(password && (email || username))) {
-      throw new CustomError(400, "LOGIN", "Invalid inputs", null);
+      throw new CustomError(
+        400,
+        "INVALID_LOGIN",
+        "Credentials are incorre",
+        null
+      );
     }
     let user;
     if (email) {
@@ -179,6 +186,9 @@ module.exports = function(User) {
     }
     if (username && !email) {
       user = await User.findOne({ where: { username } });
+    }
+    if (!user) {
+      throw new CustomError(400, "INVALID_LOGIN", "Credentials are incorrect");
     }
     const isMatched = await user.hasPassword(password);
     if (!isMatched) {
@@ -190,17 +200,18 @@ module.exports = function(User) {
       firstName,
       lastName,
       phoneNumber,
-      codeDate
+      codeDate,
+      id
     } = user;
-    const diffTime = Math.abs(Date.now() - verficationDate.getTime());
+    const diffTime = Math.abs(Date.now() - codeDate.getTime());
     const remainingTime = 300 - Math.ceil(diffTime / 1000);
-
     if (!phoneVerified) {
       throw new CustomError(400, "UNVERIFIED_PHONE", "phone is unverified", {
         firstName,
         lastName,
         phoneNumber,
-        remainingTime
+        remainingTime,
+        id
       });
     }
     if (!emailVerified) {
@@ -212,12 +223,25 @@ module.exports = function(User) {
     }
   });
   // ?restrict find all
-
   User.beforeRemote("find", function(ctx, remoteResult, next) {
     ctx.args.filter = {
       ...ctx.args.filter,
       fields: ["id", "firstName", "lastName"]
     };
     next();
+  });
+  //? scope posts for user
+  User.beforeRemote("prototype.__get__posts", async function(
+    ctx,
+    remoteResult
+  ) {
+    ctx.args.filter = {
+      ...ctx.args.filter,
+      fields: { userId: false },
+      include: {
+        relation: "user",
+        scope: { fields: ["firstName", "lastName"] }
+      }
+    };
   });
 };

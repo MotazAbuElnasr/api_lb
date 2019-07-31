@@ -7,7 +7,7 @@ const checkUserErrors = user => {
     .is()
     .min(8) // Minimum length 8
     .is()
-    .max(100) // Maximum length 100
+    .max(30) // Maximum length 30
     .has()
     .uppercase() // Must have uppercase letters
     .has()
@@ -19,7 +19,7 @@ const checkUserErrors = user => {
 
   const userSchema = Joi.object().keys({
     firstName: Joi.string()
-      .regex(/^[a-zA-Z]+$/)
+      .regex(/^[a-zA-Z']+$/)
       .min(3)
       .max(20)
       .required(),
@@ -34,7 +34,10 @@ const checkUserErrors = user => {
     password: Joi.required(),
     confirmPassword: Joi.required(),
     phoneNumber: Joi.required(),
-    username: Joi.required()
+    username: Joi.string()
+      .min(3)
+      .max(20)
+      .required()
   });
   //* get schema errors
   const { error: userSchemaErrors } = Joi.validate(user, userSchema, {
