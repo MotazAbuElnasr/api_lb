@@ -12,6 +12,7 @@
     "posttest": "npm run lint && npm audit"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^7.3.0",
     "@hapi/joi": "^15.1.0",
     "@sendgrid/mail": "^6.4.0",
     "compression": "^1.0.3",

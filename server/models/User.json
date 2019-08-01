@@ -154,7 +154,7 @@
       "description": "confirm email ",
       "http": [
         {
-          "path": "/confirmEmail",
+          "path": "/verfication-result",
           "verb": "get"
         }
       ]

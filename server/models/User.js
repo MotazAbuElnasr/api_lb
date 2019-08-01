@@ -31,7 +31,7 @@ module.exports = function(User) {
         from: "lb.media@lb.com",
         subject: "Please verify your email",
         html: `
-        <a href="http://${domain}/api/users/confirmEmail?emailToken=${emailToken}">Please click here link to verify</a>`
+        <a href="http://${domain}/api/users/verficationresult?emailToken=${emailToken}">Please click here link to verify</a>`
       };
       await sgMail.send(msg); //! uncomment that
       return emailToken;
@@ -222,6 +222,13 @@ module.exports = function(User) {
       });
     }
   });
+  User.afterRemote("login", async function(ctx, remoteResult) {
+    const { firstName, lastName, username } = await User.findOne({
+      where: { id: remoteResult.userId }
+    });
+    ctx.result = { ...ctx.result.__data, firstName, lastName, username };
+  });
+
   // ?restrict find all
   User.beforeRemote("find", function(ctx, remoteResult, next) {
     ctx.args.filter = {
