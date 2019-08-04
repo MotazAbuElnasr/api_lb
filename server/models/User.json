@@ -5,7 +5,11 @@
   "options": {
     "validateUpsert": true
   },
-  "hidden": ["confirmPassword", "emailToken", "realm"],
+  "hidden": [
+    "confirmPassword",
+    "emailToken",
+    "realm"
+  ],
   "properties": {
     "firstName": {
       "type": "string",
@@ -130,6 +134,13 @@
       "principalId": "$owner",
       "permission": "ALLOW",
       "property": "__unlink__friends"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "permission": "ALLOW",
+      "property": "searchUser"
     }
   ],
   "methods": {
@@ -274,6 +285,34 @@
         {
           "path": "/addFriend/:id",
           "verb": "post"
+        }
+      ]
+    },
+    "searchUser": {
+      "accepts": [
+        {
+          "arg": "q",
+          "type": "string",
+          "required": false,
+          "description": "searching query",
+          "http": {
+            "source": "query"
+          }
+        }
+      ],
+      "returns": [
+        {
+          "arg": "results",
+          "type": "array",
+          "root": false,
+          "description": "The returned results"
+        }
+      ],
+      "description": "searching for users",
+      "http": [
+        {
+          "path": "/search-user",
+          "verb": "get"
         }
       ]
     }

@@ -4,6 +4,7 @@ const uuidv1 = require("uuid/v1");
 const util = require("util");
 const { checkUserErrors } = require("../helpers/validators");
 const CustomError = require("../helpers/CustomError");
+const { searchUsers, saveUser } = require("../helpers/esQueries");
 const domain = "localhost:3000";
 const nexmo = new Nexmo({
   apiKey: process.env.NEXMO_API,
@@ -188,7 +189,7 @@ module.exports = function(User) {
       user = await User.findOne({ where: { username } });
     }
     if (!user) {
-      throw new CustomError(400, "INVALID_LOGIN", "Credentials are incorrect");
+      throw new CustomError(400, "USER_NOT_FOUND", "User not found");
     }
     const isMatched = await user.hasPassword(password);
     if (!isMatched) {
@@ -251,4 +252,13 @@ module.exports = function(User) {
       }
     };
   });
+
+  User.searchUser = async function(q) {
+    await saveUser({
+      firstName: "Motazzz",
+      lastName: "Ibrahim",
+      id: "+_321321fds"
+    });
+    return searchUsers("Motazzz Ibrahim");
+  };
 };
