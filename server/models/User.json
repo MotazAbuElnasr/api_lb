@@ -5,11 +5,7 @@
   "options": {
     "validateUpsert": true
   },
-  "hidden": [
-    "confirmPassword",
-    "emailToken",
-    "realm"
-  ],
+  "hidden": ["confirmPassword", "emailToken", "realm"],
   "properties": {
     "firstName": {
       "type": "string",
@@ -56,6 +52,16 @@
     },
     "friends": {
       "type": "referencesMany",
+      "model": "user"
+    },
+    "receivedRequests": {
+      "type": "referencesMany",
+      "foreignKey": "received",
+      "model": "user"
+    },
+    "sentRequests": {
+      "type": "referencesMany",
+      "foreignKey": "sent",
       "model": "user"
     }
   },
@@ -133,7 +139,56 @@
       "principalType": "ROLE",
       "principalId": "$owner",
       "permission": "ALLOW",
+      "property": "__link__sentRequests"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
+      "property": "__get__sentRequests"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
+      "property": "__unlink__sentRequests"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
+      "property": "__get__receivedRequests"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
+      "property": "__unlink__receivedRequests"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
       "property": "__unlink__friends"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
+      "property": "__link__friends"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
+      "property": "__get__friends"
     },
     {
       "accessType": "EXECUTE",
@@ -165,7 +220,7 @@
       "description": "confirm email ",
       "http": [
         {
-          "path": "/verfication-result",
+          "path": "/verification-result",
           "verb": "get"
         }
       ]

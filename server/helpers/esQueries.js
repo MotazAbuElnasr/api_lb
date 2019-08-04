@@ -19,9 +19,7 @@ const searchUsers = async user => {
       }
     });
     const users = body.hits.hits.map(user => {
-      console.log(user);
-      console.log(user._source);
-      return { id: user._source.id, fullName: user_source.fullName };
+      return { id: user._source.id, fullName: user._source.fullName };
     });
     return users;
   } catch (error) {

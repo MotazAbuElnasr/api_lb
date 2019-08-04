@@ -14,13 +14,6 @@ nexmo.verify.check = util.promisify(nexmo.verify.check);
 nexmo.verify.request = util.promisify(nexmo.verify.request);
 const SENDGRED_KEY = process.env.SENDGRID_KEY;
 module.exports = function(User) {
-  // !Remove unused methods
-  User.disableRemoteMethodByName("prototype.__create__friends");
-  User.disableRemoteMethodByName("prototype.__delete__friends");
-  User.disableRemoteMethodByName("prototype.__findById__friends");
-  User.disableRemoteMethodByName("prototype.__updateById__friends");
-  User.disableRemoteMethodByName("prototype.__destroyById__friends");
-
   const sendMail = async email => {
     const user = await User.findOne({ where: { email } });
     if (user) {
@@ -32,7 +25,7 @@ module.exports = function(User) {
         from: "lb.media@lb.com",
         subject: "Please verify your email",
         html: `
-        <a href="http://${domain}/api/users/verficationresult?emailToken=${emailToken}">Please click here link to verify</a>`
+        <a href="http://${domain}/verification-result?emailToken=${emailToken}">Please click here link to verify</a>`
       };
       await sgMail.send(msg); //! uncomment that
       return emailToken;
@@ -261,4 +254,62 @@ module.exports = function(User) {
     });
     return searchUsers("Motazzz Ibrahim");
   };
+
+  // ? send friend request
+  User.afterRemote("prototype.__link__sentRequests", async function(
+    ctx,
+    mdlRes
+  ) {
+    const userId = ctx.ctorArgs.id;
+    const friendId = ctx.args.id;
+    const friend = await User.findOne({ where: { id: friendId } });
+    friend.receivedRequests.add(userId);
+  });
+  // ? cancel friend request
+  User.afterRemote("prototype.__unlink__sentRequests", async function(
+    ctx,
+    mdlRes
+  ) {
+    const userId = ctx.ctorArgs.id;
+    const friendId = ctx.args.id;
+    const friend = await User.findOne({ where: { id: friendId } });
+    friend.receivedRequests.remove(userId);
+  });
+  // ? Add friend
+  User.afterRemote("prototype.__link__friends", async function(ctx, mdlRes) {
+    const userId = ctx.ctorArgs.id;
+    const friendId = ctx.args.id;
+    const friend = await User.findOne({ where: { id: friendId } });
+    const user = await User.findOne({ where: { id: userId } });
+    friend.sentRequests.remove(userId);
+    user.receivedRequests.remove(friendId);
+  });
+  // ? Reject friend request
+  User.afterRemote("prototype.__unlink__receivedRequests", async function(
+    ctx,
+    mdlRes
+  ) {
+    const userId = ctx.ctorArgs.id;
+    const friendId = ctx.args.id;
+    const friend = await User.findOne({ where: { id: friendId } });
+    friend.sentRequests.remove(userId);
+  });
+
+  // !Remove unused methods
+  User.disableRemoteMethodByName("prototype.__create__friends");
+  User.disableRemoteMethodByName("prototype.__delete__friends");
+  User.disableRemoteMethodByName("prototype.__findById__friends");
+  User.disableRemoteMethodByName("prototype.__updateById__friends");
+  User.disableRemoteMethodByName("prototype.__destroyById__friends");
+  User.disableRemoteMethodByName("prototype.__link__friends");
+  User.disableRemoteMethodByName("prototype.__create__receivedRequests");
+  User.disableRemoteMethodByName("prototype.__delete__receivedRequests");
+  User.disableRemoteMethodByName("prototype.__findById__receivedRequests");
+  User.disableRemoteMethodByName("prototype.__updateById__receivedRequests");
+  User.disableRemoteMethodByName("prototype.__destroyById__receivedRequests");
+  User.disableRemoteMethodByName("prototype.__create__sentRequests");
+  User.disableRemoteMethodByName("prototype.__delete__sentRequests");
+  User.disableRemoteMethodByName("prototype.__findById__sentRequests");
+  User.disableRemoteMethodByName("prototype.__updateById__sentRequests");
+  User.disableRemoteMethodByName("prototype.__destroyById__sentRequests");
 };
