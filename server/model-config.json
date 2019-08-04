@@ -34,7 +34,10 @@
   },
   "user": {
     "dataSource": "db",
-    "public": true
+    "public": true,
+    "remotly": {
+      "*": "false"
+    }
   },
   "Post": {
     "dataSource": "db",

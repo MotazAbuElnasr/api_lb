@@ -5,6 +5,7 @@ const util = require("util");
 const { checkUserErrors } = require("../helpers/validators");
 const CustomError = require("../helpers/CustomError");
 const { searchUsers, saveUser } = require("../helpers/esQueries");
+const removeUnusedRemotes = require("../helpers/removeUnusedRemotes");
 const domain = "localhost:3000";
 const nexmo = new Nexmo({
   apiKey: process.env.NEXMO_API,
@@ -59,10 +60,14 @@ module.exports = function(User) {
         code_length: "4"
       });
       ctx.args.data = { ...ctx.args.data, requestID, codeDate: Date.now() };
-      // TODO **DONE** Send the request id to the user back
     }
   });
 
+  User.afterRemote("create", async function(ctx, remoteResult) {
+    const { id, firstName, lastName } = remoteResult;
+    // ? saving to the elastic search cluster
+    await saveUser({ id, firstName, lastName });
+  });
   User.observe("before save", function removeConfirmPassField(ctx, next) {
     if (ctx.isNewInstance) {
       ctx.instance.unsetAttribute("confirmPassword");
@@ -247,23 +252,19 @@ module.exports = function(User) {
   });
 
   User.searchUser = async function(q) {
-    await saveUser({
-      firstName: "Motazzz",
-      lastName: "Ibrahim",
-      id: "+_321321fds"
-    });
-    return searchUsers("Motazzz Ibrahim");
+    return searchUsers(q);
   };
 
+  // * Handle friend requests
   // ? send friend request
   User.afterRemote("prototype.__link__sentRequests", async function(
     ctx,
     mdlRes
   ) {
     const userId = ctx.ctorArgs.id;
-    const friendId = ctx.args.id;
+    const friendId = ctx.args.fk;
     const friend = await User.findOne({ where: { id: friendId } });
-    friend.receivedRequests.add(userId);
+    await friend.receivedRequests.add(userId);
   });
   // ? cancel friend request
   User.afterRemote("prototype.__unlink__sentRequests", async function(
@@ -271,45 +272,39 @@ module.exports = function(User) {
     mdlRes
   ) {
     const userId = ctx.ctorArgs.id;
-    const friendId = ctx.args.id;
+    const friendId = ctx.args.fk;
     const friend = await User.findOne({ where: { id: friendId } });
-    friend.receivedRequests.remove(userId);
+    await friend.receivedRequests.remove(userId);
   });
   // ? Add friend
   User.afterRemote("prototype.__link__friends", async function(ctx, mdlRes) {
     const userId = ctx.ctorArgs.id;
-    const friendId = ctx.args.id;
+    const friendId = ctx.args.fk;
     const friend = await User.findOne({ where: { id: friendId } });
     const user = await User.findOne({ where: { id: userId } });
-    friend.sentRequests.remove(userId);
-    user.receivedRequests.remove(friendId);
+    await user.receivedRequests.remove(friendId);
+    await friend.sentRequests.remove(userId);
+    await friend.friends.add(userId);
   });
+
   // ? Reject friend request
   User.afterRemote("prototype.__unlink__receivedRequests", async function(
     ctx,
     mdlRes
   ) {
     const userId = ctx.ctorArgs.id;
-    const friendId = ctx.args.id;
+    const friendId = ctx.args.fk;
     const friend = await User.findOne({ where: { id: friendId } });
-    friend.sentRequests.remove(userId);
+    await friend.sentRequests.remove(userId);
   });
 
-  // !Remove unused methods
-  User.disableRemoteMethodByName("prototype.__create__friends");
-  User.disableRemoteMethodByName("prototype.__delete__friends");
-  User.disableRemoteMethodByName("prototype.__findById__friends");
-  User.disableRemoteMethodByName("prototype.__updateById__friends");
-  User.disableRemoteMethodByName("prototype.__destroyById__friends");
-  User.disableRemoteMethodByName("prototype.__link__friends");
-  User.disableRemoteMethodByName("prototype.__create__receivedRequests");
-  User.disableRemoteMethodByName("prototype.__delete__receivedRequests");
-  User.disableRemoteMethodByName("prototype.__findById__receivedRequests");
-  User.disableRemoteMethodByName("prototype.__updateById__receivedRequests");
-  User.disableRemoteMethodByName("prototype.__destroyById__receivedRequests");
-  User.disableRemoteMethodByName("prototype.__create__sentRequests");
-  User.disableRemoteMethodByName("prototype.__delete__sentRequests");
-  User.disableRemoteMethodByName("prototype.__findById__sentRequests");
-  User.disableRemoteMethodByName("prototype.__updateById__sentRequests");
-  User.disableRemoteMethodByName("prototype.__destroyById__sentRequests");
+  // * Handling profile data
+  User.afterRemote("findById", async function(ctx, remoteResult) {
+    console.log(remoteResult);
+    const userId = ctx.req.accessToken.userId;
+    const isFriend = await remoteResult.friends.exists(userId);
+    console.log(isFriend);
+  });
+
+  removeUnusedRemotes(User);
 };
