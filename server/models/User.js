@@ -96,10 +96,10 @@ module.exports = function(User) {
   };
 
   // TODO : ADD change email option
-  User.resendMail = async function(email) {
-    const user = await User.findOne({ where: { email } });
+  User.resendMail = async function(id) {
+    const user = await User.findById(id);
     if (user) {
-      const emailToken = await sendMail(email);
+      const emailToken = await sendMail(user.email);
       await user.updateAttributes({
         phoneVerified: true,
         verficationDate: Date.now(),

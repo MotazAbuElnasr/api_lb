@@ -282,12 +282,12 @@
     "resendMail": {
       "accepts": [
         {
-          "arg": "email",
+          "arg": "id",
           "type": "string",
           "required": true,
-          "description": "email to be verified",
+          "description": "user id",
           "http": {
-            "source": "body"
+            "source": "path"
           }
         }
       ],
@@ -309,12 +309,12 @@
     "resendCode": {
       "accepts": [
         {
-          "arg": "phoneNumber",
+          "arg": "id",
           "type": "string",
           "required": true,
-          "description": "phone number",
+          "description": "user id",
           "http": {
-            "source": "body"
+            "source": "path"
           }
         }
       ],
