@@ -1,52 +1,19 @@
-const Nexmo = require("nexmo");
-const sgMail = require("@sendgrid/mail");
-const uuidv1 = require("uuid/v1");
-const util = require("util");
 const { checkUserErrors } = require("../helpers/validators");
 const CustomError = require("../helpers/CustomError");
 const { searchUsers, saveUser } = require("../helpers/esQueries");
-const removeUnusedRemotes = require("../helpers/removeUnusedRemotes");
-const domain = "localhost:3000";
-const nexmo = new Nexmo({
-  apiKey: process.env.NEXMO_API,
-  apiSecret: process.env.NEXMO_SECRET
-});
-nexmo.verify.check = util.promisify(nexmo.verify.check);
-nexmo.verify.request = util.promisify(nexmo.verify.request);
-const SENDGRED_KEY = process.env.SENDGRID_KEY;
-module.exports = function(User) {
-  const sendMail = async email => {
-    const user = await User.findOne({ where: { email } });
-    if (user) {
-      const emailToken = uuidv1();
-      await user.updateAttribute("emailToken", emailToken);
-      sgMail.setApiKey(SENDGRED_KEY);
-      const msg = {
-        to: email,
-        from: "lb.media@lb.com",
-        subject: "Please verify your email",
-        html: `
-        <a href="http://${domain}/verification-result?emailToken=${emailToken}">Please click here link to verify</a>`
-      };
-      await sgMail.send(msg); //! uncomment that
-      return emailToken;
-    }
-    return false;
-  };
+const { getPosts, sendMail, nexmo } = require("../helpers/userHelpers");
 
+module.exports = function(User) {
   User.beforeRemote("create", async function(ctx, obj) {
-    console.log(ctx.req.body);
     const user = ctx.req.body;
     const { phoneNumber, email, username } = user;
     const userErrors = checkUserErrors(user);
     if (!(phoneNumber && email && username)) {
       throw new CustomError(400, "VERFICATION", "invalid inputs", userErrors);
     }
-    console.log("connecting");
     const phoneExist = await User.findOne({ where: { phoneNumber } });
     const emailExist = await User.findOne({ where: { email } });
     const usernameExist = await User.findOne({ where: { username } });
-    console.log("done");
     phoneExist ? userErrors.push("phone") : "";
     emailExist ? userErrors.push("email") : "";
     usernameExist ? userErrors.push("username") : "";
@@ -76,7 +43,7 @@ module.exports = function(User) {
   });
   //? Resend confirmation number
   User.resendCode = async function(id) {
-    const user = await User.findOne({ where: { id } });
+    const user = await User.findById(id);
     const number = user.phoneNumber.slice(1);
     const { request_id: requestID } = await nexmo.verify.request({
       number: "201095747099", //! api send free sms to the registered number
@@ -222,9 +189,9 @@ module.exports = function(User) {
     }
   });
   User.afterRemote("login", async function(ctx, remoteResult) {
-    const { firstName, lastName, username } = await User.findOne({
-      where: { id: remoteResult.userId }
-    });
+    const { firstName, lastName, username } = await User.findById(
+      remoteResult.userId
+    );
     ctx.result = { ...ctx.result.__data, firstName, lastName, username };
   });
 
@@ -237,6 +204,7 @@ module.exports = function(User) {
     next();
   });
   //? scope posts for user
+  // ! to be ommit
   User.beforeRemote("prototype.__get__posts", async function(
     ctx,
     remoteResult
@@ -263,7 +231,7 @@ module.exports = function(User) {
   ) {
     const userId = ctx.ctorArgs.id;
     const friendId = ctx.args.fk;
-    const friend = await User.findOne({ where: { id: friendId } });
+    const friend = await User.findById(friendId);
     await friend.receivedRequests.add(userId);
   });
   // ? cancel friend request
@@ -273,18 +241,39 @@ module.exports = function(User) {
   ) {
     const userId = ctx.ctorArgs.id;
     const friendId = ctx.args.fk;
-    const friend = await User.findOne({ where: { id: friendId } });
+    const friend = await User.findById(friendId);
     await friend.receivedRequests.remove(userId);
   });
   // ? Add friend
-  User.afterRemote("prototype.__link__friends", async function(ctx, mdlRes) {
+  // ? can't add himself
+  User.beforeRemote("prototype.__link__friends", async function(ctx) {
     const userId = ctx.ctorArgs.id;
     const friendId = ctx.args.fk;
-    const friend = await User.findOne({ where: { id: friendId } });
-    const user = await User.findOne({ where: { id: userId } });
-    await user.receivedRequests.remove(friendId);
-    await friend.sentRequests.remove(userId);
-    await friend.friends.add(userId);
+    const friend = await User.findById(friendId);
+    const user = await User.findById(userId);
+    ctx.user = user;
+    ctx.friend = friend;
+    if (!(user.id && friend.id)) {
+      throw new CustomError(404, "USER_NOT_FOUND", "invalid user ids");
+    }
+    if (userId === friendId) {
+      throw new CustomError(
+        400,
+        "INVALID_OPERATION",
+        "Can't add your self as a friend"
+      );
+    }
+  });
+  User.afterRemote("prototype.__link__friends", async function(ctx, mdlRes) {
+    try {
+      const { user, friend } = ctx;
+      await user.receivedRequests.remove(friend.id);
+      await friend.sentRequests.remove(user.id);
+      await friend.friends.add(user.id);
+      ctx.result = {};
+    } catch (error) {
+      throw new CustomError(500, "SERVER_ERROR");
+    }
   });
 
   // ? Reject friend request
@@ -294,17 +283,36 @@ module.exports = function(User) {
   ) {
     const userId = ctx.ctorArgs.id;
     const friendId = ctx.args.fk;
-    const friend = await User.findOne({ where: { id: friendId } });
+    const friend = await User.findById(friendId);
     await friend.sentRequests.remove(userId);
   });
 
   // * Handling profile data
-  User.afterRemote("findById", async function(ctx, remoteResult) {
-    console.log(remoteResult);
-    const userId = ctx.req.accessToken.userId;
-    const isFriend = await remoteResult.friends.exists(userId);
-    console.log(isFriend);
-  });
 
-  removeUnusedRemotes(User);
+  User.afterRemote("findById", async function(ctx, remoteResult) {
+    const currentUser = ctx.req.accessToken.userId.toJSON();
+    const isFriend = await remoteResult.friends.exists(currentUser);
+    const friends = await remoteResult.friends({
+      limit: 5,
+      fields: { firstName: true, lastName: true, id: true, username: true }
+    });
+    const posts = await getPosts(currentUser, remoteResult, 1, isFriend);
+    const { id, firstName, lastName, username } = ctx.result.__data;
+    ctx.result = {
+      id,
+      firstName,
+      lastName,
+      username,
+      isFriend,
+      posts,
+      friends
+    };
+  });
+  User.getPosts = async function(targetUser, page, req) {
+    const currentUser = req.accessToken.userId;
+    const user = await User.findById(targetUser);
+    const isFriend = await user.friends.exists(currentUser);
+    const posts = await getPosts(currentUser, user, page, isFriend);
+    return posts;
+  };
 };

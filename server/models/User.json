@@ -51,18 +51,18 @@
     },
     "friends": {
       "type": "referencesMany",
-      "foreignKey": "friend",
-      "model": "user"
+      "model": "user",
+      "foreignKey": "friend"
     },
     "receivedRequests": {
       "type": "referencesMany",
-      "foreignKey": "received",
-      "model": "user"
+      "model": "user",
+      "foreignKey": "received"
     },
     "sentRequests": {
       "type": "referencesMany",
-      "foreignKey": "sent",
-      "model": "user"
+      "model": "user",
+      "foreignKey": "sent"
     }
   },
   "acls": [
@@ -112,6 +112,13 @@
       "principalId": "$authenticated",
       "permission": "ALLOW",
       "property": "find"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$authenticated",
+      "permission": "ALLOW",
+      "property": "getPosts"
     },
     {
       "accessType": "EXECUTE",
@@ -388,6 +395,52 @@
       "http": [
         {
           "path": "/search-user",
+          "verb": "get"
+        }
+      ]
+    },
+    "getPosts": {
+      "accepts": [
+        {
+          "arg": "id",
+          "type": "string",
+          "required": true,
+          "description": "the profile id",
+          "http": {
+            "source": "query"
+          }
+        },
+
+        {
+          "arg": "page",
+          "type": "number",
+          "required": true,
+          "description": "the page number",
+          "http": {
+            "source": "query"
+          }
+        },
+        {
+          "arg": "req",
+          "type": "object",
+          "description": "request object",
+          "http": {
+            "source": "req"
+          }
+        }
+      ],
+      "returns": [
+        {
+          "arg": "posts",
+          "type": "array",
+          "root": false,
+          "description": "the requested posts"
+        }
+      ],
+      "description": "get next posts",
+      "http": [
+        {
+          "path": "/getPosts",
           "verb": "get"
         }
       ]

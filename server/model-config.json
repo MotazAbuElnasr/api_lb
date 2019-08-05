@@ -35,12 +35,39 @@
   "user": {
     "dataSource": "db",
     "public": true,
-    "remotly": {
-      "*": "false"
+    "options": {
+      "remoting": {
+        "sharedMethods": {
+          "prototype.__create__friends": false,
+          "prototype.__delete__friends": false,
+          "prototype.__findById__friends": false,
+          "prototype.__updateById__friends": false,
+          "prototype.__destroyById__friends": false,
+          "prototype.__create__receivedRequests": false,
+          "prototype.__delete__receivedRequests": false,
+          "prototype.__findById__receivedRequests": false,
+          "prototype.__updateById__receivedRequests": false,
+          "prototype.__destroyById__receivedRequests": false,
+          "prototype.__create__sentRequests": false,
+          "prototype.__delete__sentRequests": false,
+          "prototype.__findById__sentRequests": false,
+          "prototype.__updateById__sentRequests": false,
+          "prototype.__destroyById__sentRequest": false
+        }
+      }
     }
   },
   "Post": {
     "dataSource": "db",
-    "public": true
+    "public": true,
+    "options": {
+      "remoting": {
+        "sharedMethods": {
+          "*": false,
+          "find": true,
+          "findById": true
+        }
+      }
+    }
   }
 }
