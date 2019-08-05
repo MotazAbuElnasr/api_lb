@@ -44,14 +44,17 @@ module.exports = function(User) {
   //? Resend confirmation number
   User.resendCode = async function(id) {
     const user = await User.findById(id);
-    const number = user.phoneNumber.slice(1);
-    const { request_id: requestID } = await nexmo.verify.request({
-      number: "201095747099", //! api send free sms to the registered number
-      brand: "Nexmo",
-      code_length: "4"
-    });
-    await user.updateAttributes({ requestID });
-    return requestID;
+    if (user) {
+      const number = user.phoneNumber.slice(1);
+      const { request_id: requestID } = await nexmo.verify.request({
+        number: "201095747099", //! api send free sms to the registered number
+        brand: "Nexmo",
+        code_length: "4"
+      });
+      await user.updateAttributes({ requestID });
+      return requestID;
+    }
+    throw new CustomError(404, "USER_NOT_FOUND", null, null);
   };
 
   // Add remote method for confirming phone number
