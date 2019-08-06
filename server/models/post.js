@@ -6,7 +6,7 @@ module.exports = function(Post) {
       ...ctx.args.filter,
       include: {
         relation: "user",
-        scope: { fields: ["firstName", "lastName"] }
+        scope: { fields: ["firstName", "lastName", "username"] }
       }
     };
   });
